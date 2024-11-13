@@ -14,4 +14,101 @@ editor_options:
   chunk_output_type: console
 ---
 
+#### Load libraries
+```{r}
+library(tidyverse)
+library(stars)
+library(tmap)
+library(sf)
+```
+
+```{r}
+# Use rast from the terra package to read in tile h08v05 date 02/07/21, save as variable tile_8_5_07
+sea_surf_temp_08 <- read_stars(here::here("data", "average_annual_sst_2008.tif"), quiet = TRUE)
+
+sea_surf_temp_09 <- read_stars(here::here("data", "average_annual_sst_2009.tif"), quiet = TRUE)
+
+sea_surf_temp_10 <- read_stars(here::here("data", "average_annual_sst_2010.tif"), quiet = TRUE) 
+
+sea_surf_temp_11 <- read_stars(here::here("data", "average_annual_sst_2011.tif"), quiet = TRUE)
+
+sea_surf_temp_12 <- read_stars(here::here("data", "average_annual_sst_2012.tif"), quiet = TRUE)
+
+bathymetry <- read_stars(here::here("data", "depth.tif"), quiet = TRUE)
+
+wc_regions_clean <- st_read(here::here("data", "wc_regions_clean.shp"), quiet = TRUE)
+```
+
+```{r}
+# Define the target CRS
+target_crs <- st_crs(4326)
+
+# List of spatial objects with original variable names
+spatial_objects <- list(
+  bathymetry = bathymetry,
+  sea_surf_temp_08 = sea_surf_temp_08,
+  sea_surf_temp_09 = sea_surf_temp_09,
+  sea_surf_temp_10 = sea_surf_temp_10,
+  sea_surf_temp_11 = sea_surf_temp_11,
+  sea_surf_temp_12 = sea_surf_temp_12,
+  wc_regions_clean = wc_regions_clean
+)
+
+# For loop to check and transform CRS
+for (name in names(spatial_objects)) {
+  current_crs <- st_crs(spatial_objects[[name]])
+  # Check if the current CRS matches the target CRS
+  if (!st_crs(current_crs) == target_crs) {
+    # Transform to the target CRS
+    spatial_objects[[name]] <- st_transform(spatial_objects[[name]], target_crs)
+    message("Transformed spatial object ", name, " to target CRS")
+  } else {
+    message("Spatial object ", name, " already in target CRS")
+  }
+  # Assign the transformed object back to its original variable name
+  assign(name, spatial_objects[[name]])
+}
+
+# Print a message indicating completion
+message("CRS check and transformation completed")
+
+```
+
+```{r} 
+sst_stack <- c(sea_surf_temp_08, sea_surf_temp_09, sea_surf_temp_10, sea_surf_temp_11, sea_surf_temp_12, along = "band") 
+```
+
+```{r}
+mean_sst <- st_apply(sst_stack, MARGIN = c("x", "y"), FUN = mean, na.rm = TRUE)
+```
+
+```{r}
+# Check the summary statistics to see if the mean is different 
+print(sea_surf_temp_08)
+print(mean_sst)
+
+# Map to see
+tm_shape(mean_sst) + 
+  tm_raster(title = "Mean SST Temp")
+```
+
+```{r}
+# Convert mean SST to Celsius 
+mean_sst_c <- mean_sst - 273.15
+
+# Create the map with the reversed red color palette
+tm_shape(mean_sst_c) + 
+  tm_raster(title = "Mean Water Temp", palette = rev("blues")) + 
+  tm_title("Mean Sea Surface Temperature (2008-2012) (°C)")
+
+```
+
+```{r}
+bathymetry <- st_crop(bathymetry, mean_sst_c)
+
+tm_shape(bathymetry) + 
+  tm_raster()
+
+st_crs(bythemetry)
+```
 
