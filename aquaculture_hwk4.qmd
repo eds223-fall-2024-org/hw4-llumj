@@ -1,0 +1,17 @@
+---
+title: "Homework Assignment #4"
+subtitle: "Exploring Viable Aquaculture on California Coast"
+author: "Joshua Mull"
+date: last-modified
+execute:
+  warning: false
+  message: false
+format:
+  html:
+    toc: true
+    code-fold: true
+editor_options: 
+  chunk_output_type: console
+---
+
+
